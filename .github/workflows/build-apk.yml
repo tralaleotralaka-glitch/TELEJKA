@@ -100,11 +100,23 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="v1.0.0"
+
+          python3 - <<'PY'
+          import base64, json
+          with open("apk-output/TELEJKA-v1.0.0-release.apk", "rb") as f:
+              b64 = base64.b64encode(f.read()).decode("ascii")
+          with open("/tmp/apk_blob.json", "w") as out:
+              json.dump({"content": b64, "encoding": "base64"}, out)
+          PY
+
+          APK_BLOB_SHA="$(gh api --method POST "repos/${GITHUB_REPOSITORY}/git/blobs" --input /tmp/apk_blob.json --jq '.sha')"
+          echo "Created APK Git blob: ${APK_BLOB_SHA}"
+
           NOTES_FILE="${{ runner.temp }}/release-notes.md"
           cat <<'EOF' > "$NOTES_FILE"
           ## TELEJKA v1.0.0 — Android APK
 
-          Прямые установочные `.apk` файлы приложения **TELEJKA** (Telegram WebView Hub, редактор постов, генератор `t.me`/`tg://` ссылок и QR-кодов, консоль Telegram Bot API).
+          Прямые установочные `.apk` файлы приложения **TELEJKA** (Telegram WebView Hub с поддержкой переписки, голоса/камеры, файлов, редактор постов, генератор `t.me`/`tg://` ссылок и QR-кодов, консоль Telegram Bot API).
 
           ### Установка на Android
           1. Скачайте **`TELEJKA-v1.0.0-release.apk`** ниже (один клик, без распаковки архива).
@@ -115,6 +127,8 @@ jobs:
           EOF
           cat apk-output/SHA256SUMS.txt >> "$NOTES_FILE"
           echo '```' >> "$NOTES_FILE"
+          echo "" >> "$NOTES_FILE"
+          echo "<!-- APK_BLOB_SHA:${APK_BLOB_SHA} -->" >> "$NOTES_FILE"
 
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" apk-output/*.apk apk-output/SHA256SUMS.txt --clobber

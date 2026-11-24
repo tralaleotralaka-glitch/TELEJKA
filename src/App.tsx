@@ -7,6 +7,7 @@ import {
   Settings,
   Smartphone,
   Globe,
+  Download,
 } from 'lucide-react';
 import type { AppSettings, AppTab, PostDraft, TelegramBookmark } from './types';
 import {
@@ -25,6 +26,13 @@ import { LinksQrTab } from './components/LinksQrTab';
 import { BotConsoleTab } from './components/BotConsoleTab';
 import { SettingsTab } from './components/SettingsTab';
 import { Toast, type ToastMessage } from './components/Toast';
+
+interface ApkDownloadStatus {
+  available: boolean;
+  fileName: string;
+  sizeBytes: number;
+  downloadUrl: string;
+}
 
 const NAV_ITEMS: {
   id: AppTab;
@@ -45,6 +53,11 @@ const THEME_META_COLORS: Record<AppSettings['theme'], string> = {
   oled: '#000000',
 };
 
+function formatMegabytes(bytes: number): string {
+  if (!bytes || bytes <= 0) return '';
+  return `${(bytes / (1024 * 1024)).toFixed(2)} МБ`;
+}
+
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<AppTab>('hub');
   const [settings, setSettings] = useState<AppSettings>(() => loadSettings());
@@ -53,9 +66,28 @@ export const App: React.FC = () => {
   const [activeDraftId, setActiveDraftId] = useState<string>(() => loadDrafts()[0]?.id ?? '');
   const [incomingBotHtml, setIncomingBotHtml] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastMessage | null>(null);
+  const [apkStatus, setApkStatus] = useState<ApkDownloadStatus | null>(null);
 
   const toastTimerRef = useRef<number | null>(null);
   const nativeAndroid = isNativeAndroid();
+
+  useEffect(() => {
+    if (nativeAndroid) return;
+    let cancelled = false;
+    fetch('./api/apk-status')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: ApkDownloadStatus | null) => {
+        if (!cancelled && data && data.available) {
+          setApkStatus(data);
+        }
+      })
+      .catch(() => {
+        // Ignore when running purely static
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [nativeAndroid]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -166,20 +198,33 @@ export const App: React.FC = () => {
           </nav>
         </div>
 
-        <div className="tg-elevated rounded-2xl p-3.5 text-xs space-y-1.5">
-          <div className="flex items-center gap-2 font-semibold">
-            {nativeAndroid ? (
-              <Smartphone className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-            ) : (
-              <Globe className="w-4 h-4" style={{ color: 'var(--accent)' }} />
-            )}
-            <span>{nativeAndroid ? 'Android APK' : 'Веб-превью APK'}</span>
+        <div className="space-y-2.5">
+          {!nativeAndroid && apkStatus?.available && (
+            <a
+              href={apkStatus.downloadUrl}
+              download={apkStatus.fileName}
+              className="tg-btn-primary w-full rounded-2xl px-3.5 py-3 text-xs flex items-center justify-center gap-2 no-underline"
+            >
+              <Download className="w-4 h-4 shrink-0" />
+              <span>Скачать APK ({formatMegabytes(apkStatus.sizeBytes)})</span>
+            </a>
+          )}
+
+          <div className="tg-elevated rounded-2xl p-3.5 text-xs space-y-1.5">
+            <div className="flex items-center gap-2 font-semibold">
+              {nativeAndroid ? (
+                <Smartphone className="w-4 h-4" style={{ color: 'var(--accent)' }} />
+              ) : (
+                <Globe className="w-4 h-4" style={{ color: 'var(--accent)' }} />
+              )}
+              <span>{nativeAndroid ? 'Android APK' : 'Веб-превью APK'}</span>
+            </div>
+            <p className="leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+              Package: <span className="font-mono">ru.telejka.app</span>
+              <br />
+              v1.0.0 • Capacitor WebView
+            </p>
           </div>
-          <p className="leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-            Package: <span className="font-mono">ru.telejka.app</span>
-            <br />
-            v1.0.0 • Capacitor WebView
-          </p>
         </div>
       </aside>
 
@@ -203,24 +248,68 @@ export const App: React.FC = () => {
               </div>
             </div>
 
-            <div
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium shrink-0"
-              style={{
-                backgroundColor: 'var(--bg-elevated)',
-                color: 'var(--text-secondary)',
-              }}
-            >
-              <span
-                className="w-2 h-2 rounded-full"
-                style={{ backgroundColor: nativeAndroid ? '#20c997' : 'var(--accent)' }}
-              />
-              <span>{nativeAndroid ? 'APK Native' : 'TELEJKA v1.0'}</span>
+            <div className="flex items-center gap-2 shrink-0">
+              {!nativeAndroid && apkStatus?.available && (
+                <a
+                  href={apkStatus.downloadUrl}
+                  download={apkStatus.fileName}
+                  className="tg-btn-primary rounded-full px-3 py-1.5 text-xs flex items-center gap-1.5 no-underline"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Скачать APK</span>
+                </a>
+              )}
+
+              <div
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium shrink-0"
+                style={{
+                  backgroundColor: 'var(--bg-elevated)',
+                  color: 'var(--text-secondary)',
+                }}
+              >
+                <span
+                  className="w-2 h-2 rounded-full"
+                  style={{ backgroundColor: nativeAndroid ? '#20c997' : 'var(--accent)' }}
+                />
+                <span>{nativeAndroid ? 'APK Native' : 'TELEJKA v1.0'}</span>
+              </div>
             </div>
           </div>
         </header>
 
         {/* Active Tab View */}
-        <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 py-5 pb-24 md:pb-10">
+        <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 py-5 pb-24 md:pb-10 space-y-5">
+          {/* Direct APK Download Banner in Web Preview (no GitHub needed!) */}
+          {!nativeAndroid && apkStatus?.available && (
+            <section className="tg-card rounded-3xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div
+                  className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0"
+                  style={{ backgroundColor: 'var(--accent-soft)', color: 'var(--accent)' }}
+                >
+                  <Smartphone className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-sm sm:text-base font-bold leading-snug">
+                    Готовый Android APK (прямое скачивание без GitHub)
+                  </div>
+                  <div className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-secondary)' }}>
+                    {apkStatus.fileName} • {formatMegabytes(apkStatus.sizeBytes)} • Подписан (Android 7.0+)
+                  </div>
+                </div>
+              </div>
+
+              <a
+                href={apkStatus.downloadUrl}
+                download={apkStatus.fileName}
+                className="tg-btn-primary rounded-2xl px-5 py-3 text-sm flex items-center justify-center gap-2 shrink-0 no-underline"
+              >
+                <Download className="w-4 h-4" />
+                <span>Скачать .apk</span>
+              </a>
+            </section>
+          )}
+
           {activeTab === 'hub' && (
             <TelegramHubTab
               settings={settings}

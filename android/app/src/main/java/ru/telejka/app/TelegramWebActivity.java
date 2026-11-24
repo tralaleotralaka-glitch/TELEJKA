@@ -1,9 +1,11 @@
 package ru.telejka.app;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.DownloadManager;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
@@ -12,6 +14,7 @@ import android.view.View;
 import android.view.Window;
 import android.webkit.CookieManager;
 import android.webkit.DownloadListener;
+import android.webkit.PermissionRequest;
 import android.webkit.URLUtil;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -29,8 +32,12 @@ import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class TelegramWebActivity extends AppCompatActivity {
 
@@ -48,6 +55,7 @@ public class TelegramWebActivity extends AppCompatActivity {
     private String initialHost = "";
 
     private ValueCallback<Uri[]> filePathCallback;
+    private PermissionRequest pendingWebPermissionRequest;
 
     private final ActivityResultLauncher<Intent> fileChooserLauncher =
             registerForActivityResult(
@@ -60,6 +68,33 @@ public class TelegramWebActivity extends AppCompatActivity {
                         );
                         filePathCallback.onReceiveValue(results);
                         filePathCallback = null;
+                    }
+            );
+
+    private final ActivityResultLauncher<String[]> mediaPermissionLauncher =
+            registerForActivityResult(
+                    new ActivityResultContracts.RequestMultiplePermissions(),
+                    results -> {
+                        if (pendingWebPermissionRequest == null) return;
+                        PermissionRequest req = pendingWebPermissionRequest;
+                        pendingWebPermissionRequest = null;
+
+                        List<String> grantedResources = new ArrayList<>();
+                        for (String res : req.getResources()) {
+                            if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(res)
+                                    && Boolean.TRUE.equals(results.get(Manifest.permission.RECORD_AUDIO))) {
+                                grantedResources.add(res);
+                            } else if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(res)
+                                    && Boolean.TRUE.equals(results.get(Manifest.permission.CAMERA))) {
+                                grantedResources.add(res);
+                            }
+                        }
+
+                        if (!grantedResources.isEmpty()) {
+                            req.grant(grantedResources.toArray(new String[0]));
+                        } else {
+                            req.deny();
+                        }
                     }
             );
 
@@ -161,13 +196,11 @@ public class TelegramWebActivity extends AppCompatActivity {
                 String scheme = uri.getScheme() != null ? uri.getScheme().toLowerCase() : "";
                 String host = uri.getHost() != null ? uri.getHost().toLowerCase() : "";
 
-                // Open tg://, mailto:, tel:, intent: via system apps
                 if (!"http".equals(scheme) && !"https".equals(scheme)) {
                     openExternally(uri);
                     return true;
                 }
 
-                // Keep Telegram domains and user's custom mirror inside the WebView
                 boolean isTelegramHost =
                         host.endsWith(".telegram.org")
                                 || host.equals("telegram.org")
@@ -193,6 +226,50 @@ public class TelegramWebActivity extends AppCompatActivity {
                     progressBar.setVisibility(View.VISIBLE);
                     progressBar.setProgress(newProgress);
                 }
+            }
+
+            @Override
+            public void onPermissionRequest(final PermissionRequest request) {
+                runOnUiThread(() -> {
+                    List<String> neededAndroidPerms = new ArrayList<>();
+                    List<String> alreadyGrantedResources = new ArrayList<>();
+
+                    for (String res : request.getResources()) {
+                        if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(res)) {
+                            if (ContextCompat.checkSelfPermission(
+                                    TelegramWebActivity.this,
+                                    Manifest.permission.RECORD_AUDIO
+                            ) == PackageManager.PERMISSION_GRANTED) {
+                                alreadyGrantedResources.add(res);
+                            } else {
+                                neededAndroidPerms.add(Manifest.permission.RECORD_AUDIO);
+                            }
+                        } else if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(res)) {
+                            if (ContextCompat.checkSelfPermission(
+                                    TelegramWebActivity.this,
+                                    Manifest.permission.CAMERA
+                            ) == PackageManager.PERMISSION_GRANTED) {
+                                alreadyGrantedResources.add(res);
+                            } else {
+                                neededAndroidPerms.add(Manifest.permission.CAMERA);
+                            }
+                        }
+                    }
+
+                    if (!neededAndroidPerms.isEmpty()) {
+                        if (pendingWebPermissionRequest != null) {
+                            pendingWebPermissionRequest.deny();
+                        }
+                        pendingWebPermissionRequest = request;
+                        mediaPermissionLauncher.launch(
+                                neededAndroidPerms.toArray(new String[0])
+                        );
+                    } else if (!alreadyGrantedResources.isEmpty()) {
+                        request.grant(alreadyGrantedResources.toArray(new String[0]));
+                    } else {
+                        request.deny();
+                    }
+                });
             }
 
             @Override
@@ -319,6 +396,10 @@ public class TelegramWebActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
+        if (pendingWebPermissionRequest != null) {
+            pendingWebPermissionRequest.deny();
+            pendingWebPermissionRequest = null;
+        }
         if (filePathCallback != null) {
             filePathCallback.onReceiveValue(null);
             filePathCallback = null;
