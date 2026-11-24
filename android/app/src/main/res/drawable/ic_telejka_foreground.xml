@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:scaleX="0.62"
+        android:scaleY="0.62">
+        <!-- Main white paper plane -->
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M84.0,27.0 L22.8,51.0 C19.8,52.2 19.9,56.4 23.0,57.4 L38.8,62.6 L74.2,37.5 C75.4,36.7 76.7,38.2 75.7,39.2 L46.8,66.4 L45.1,81.8 C44.9,84.0 47.5,85.3 49.2,83.8 L58.6,75.4 L73.4,86.0 C75.5,87.5 78.6,86.4 79.2,83.8 L88.2,31.2 C88.7,28.2 86.6,26.0 84.0,27.0 Z" />
+        <!-- Fold shadow -->
+        <path
+            android:fillColor="#FFC4E4FA"
+            android:pathData="M38.8,62.6 L74.2,37.5 C75.4,36.7 76.7,38.2 75.7,39.2 L46.8,66.4 L45.1,81.8 L38.8,62.6 Z" />
+        <!-- Subtle Telejka wheels -->
+        <path
+            android:fillColor="#EBF5FC"
+            android:pathData="M51,92m-3.6,0a3.6,3.6 0,1 1,7.2 0a3.6,3.6 0,1 1,-7.2 0" />
+        <path
+            android:fillColor="#EBF5FC"
+            android:pathData="M70,92m-3.6,0a3.6,3.6 0,1 1,7.2 0a3.6,3.6 0,1 1,-7.2 0" />
+    </group>
+</vector>

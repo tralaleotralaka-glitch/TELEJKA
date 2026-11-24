@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/telejkaWebRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/telejkaNightBg"
+    android:fitsSystemWindows="true"
+    android:orientation="vertical">
+
+    <!-- Compact Top Bar -->
+    <LinearLayout
+        android:id="@+id/telejkaTopBar"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="@color/telejkaSurface"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp">
+
+        <Button
+            android:id="@+id/btnBackHub"
+            android:layout_width="wrap_content"
+            android:layout_height="34dp"
+            android:backgroundTint="#229ED9"
+            android:minWidth="0dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:text="← Хаб"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/tvWebTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_marginEnd="6dp"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="Telegram Web"
+            android:textColor="#F5F7FA"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btnSwitchK"
+            android:layout_width="wrap_content"
+            android:layout_height="34dp"
+            android:layout_marginEnd="4dp"
+            android:backgroundTint="#1F2C3A"
+            android:minWidth="0dp"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:text="Web K"
+            android:textAllCaps="false"
+            android:textColor="#DCE8F5"
+            android:textSize="11sp" />
+
+        <Button
+            android:id="@+id/btnSwitchA"
+            android:layout_width="wrap_content"
+            android:layout_height="34dp"
+            android:layout_marginEnd="4dp"
+            android:backgroundTint="#1F2C3A"
+            android:minWidth="0dp"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:text="Web A"
+            android:textAllCaps="false"
+            android:textColor="#DCE8F5"
+            android:textSize="11sp" />
+
+        <Button
+            android:id="@+id/btnReload"
+            android:layout_width="wrap_content"
+            android:layout_height="34dp"
+            android:backgroundTint="#1F2C3A"
+            android:minWidth="0dp"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:text="↻"
+            android:textColor="#DCE8F5"
+            android:textSize="15sp" />
+    </LinearLayout>
+
+    <!-- Thin Progress Indicator -->
+    <ProgressBar
+        android:id="@+id/webProgressBar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="3dp"
+        android:max="100"
+        android:progressTint="#2AABEE"
+        android:visibility="gone" />
+
+    <!-- Embedded Telegram WebView -->
+    <WebView
+        android:id="@+id/telegramWebView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+</LinearLayout>

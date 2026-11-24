@@ -1,0 +1,79 @@
+name: Build TELEJKA Android APK
+
+on:
+  push:
+    branches:
+      - main
+      - 'arena/**'
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    name: Build Debug & Release APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Setup Java 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Install dependencies & run tests
+        run: |
+          npm ci
+          npm test
+
+      - name: Build web bundle & sync Capacitor Android
+        run: |
+          npm run build
+          npx cap sync android
+
+      - name: Prepare signing keystore (optional secret)
+        id: keystore
+        shell: bash
+        run: |
+          if [ -n "${{ secrets.TELEJKA_KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.TELEJKA_KEYSTORE_BASE64 }}" | base64 -d > "${{ runner.temp }}/telejka-release.jks"
+            echo "keystore_file=${{ runner.temp }}/telejka-release.jks" >> "$GITHUB_OUTPUT"
+          else
+            echo "keystore_file=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build Android APKs (Debug & Release)
+        working-directory: android
+        env:
+          TELEJKA_KEYSTORE_FILE: ${{ steps.keystore.outputs.keystore_file }}
+          TELEJKA_KEYSTORE_PASSWORD: ${{ secrets.TELEJKA_KEYSTORE_PASSWORD }}
+          TELEJKA_KEY_ALIAS: ${{ secrets.TELEJKA_KEY_ALIAS }}
+          TELEJKA_KEY_PASSWORD: ${{ secrets.TELEJKA_KEY_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug assembleRelease --no-daemon
+
+      - name: Collect APK artifacts
+        run: |
+          mkdir -p apk-output
+          cp android/app/build/outputs/apk/debug/*.apk apk-output/
+          cp android/app/build/outputs/apk/release/*.apk apk-output/
+          ls -lh apk-output/
+
+      - name: Upload TELEJKA APK Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: TELEJKA-APK
+          path: apk-output/*.apk
+          retention-days: 30

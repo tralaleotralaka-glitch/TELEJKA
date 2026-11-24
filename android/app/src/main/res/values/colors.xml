@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#229ED9</color>
+    <color name="colorPrimaryDark">#0E1621</color>
+    <color name="colorAccent">#2AABEE</color>
+    <color name="telejkaNightBg">#0E1621</color>
+    <color name="telejkaSurface">#17212B</color>
+    <color name="telejkaDayBg">#EFF2F6</color>
+    <color name="telejkaOledBg">#000000</color>
+</resources>

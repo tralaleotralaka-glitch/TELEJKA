@@ -1,0 +1,30 @@
+# Dependencies & build outputs
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+*.jks
+*.keystore
+
+# Android build artifacts (keep android/ source, ignore generated build outputs)
+android/.gradle/
+android/.idea/
+android/local.properties
+android/build/
+android/app/build/
+android/capacitor-cordova-android-plugins/build/
+android/app/src/main/assets/public/
+
+# OS & editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

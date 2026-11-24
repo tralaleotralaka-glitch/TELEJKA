@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="tgBg" x1="48" y1="32" x2="464" y2="480" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#37BCEE" />
+      <stop offset="55%" stop-color="#229ED9" />
+      <stop offset="100%" stop-color="#1565A8" />
+    </linearGradient>
+    <linearGradient id="planeShade" x1="170" y1="210" x2="310" y2="365" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#D7EEFC" />
+      <stop offset="100%" stop-color="#B0D8F5" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="118" fill="url(#tgBg)" />
+  <circle cx="404" cy="112" r="142" fill="#FFFFFF" fill-opacity="0.08" />
+  <circle cx="96" cy="430" r="126" fill="#0B3B66" fill-opacity="0.18" />
+  <!-- Stylized paper plane -->
+  <path
+    d="M398 128L108 242C94 247.5 94.5 267.5 108.8 272.2L184 297L352 178C357.5 174 363.6 181.2 358.8 186L222 315L214 388C213 398.5 225.4 404.8 233.4 397.8L278 358L348 408C358.2 415.4 372.6 409.8 375.4 397.4L418 148C420.5 133.6 410.5 123 398 128Z"
+    fill="#FFFFFF"
+  />
+  <path
+    d="M184 297L352 178C357.5 174 363.6 181.2 358.8 186L222 315L214 388L184 297Z"
+    fill="url(#planeShade)"
+  />
+  <!-- Subtle Telejka wheel dots underneath -->
+  <circle cx="242" cy="436" r="16" fill="#FFFFFF" fill-opacity="0.92" />
+  <circle cx="332" cy="436" r="16" fill="#FFFFFF" fill-opacity="0.92" />
+</svg>
