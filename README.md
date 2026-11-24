@@ -39,13 +39,12 @@ npm test
 
 ## Сборка Android APK
 
-### 1. Автоматическая сборка через GitHub Actions (рекомендуется)
+### 1. Автоматическая сборка и публикация APK на GitHub (рекомендуется)
 
-В репозитории настроен workflow `.github/workflows/build-apk.yml`. При каждом пуше или ручном запуске (`Actions → Build TELEJKA Android APK → Run workflow`) GitHub Actions автоматически собирает:
-- `TELEJKA-v1.0.0-debug.apk`
-- `TELEJKA-v1.0.0-release.apk`
-
-Готовые `.apk` файлы доступны в разделе **Artifacts** (`TELEJKA-APK`) выполненного запуска.
+В репозитории настроен workflow `.github/workflows/build-apk.yml`. При каждом пуше или ручном запуске (`Actions → Build TELEJKA Android APK → Run workflow`) GitHub Actions автоматически:
+- собирает и проверяет подпись (`apksigner verify`) для `TELEJKA-v1.0.0-release.apk` и `TELEJKA-v1.0.0-debug.apk`;
+- публикует готовые `.apk`-файлы напрямую в **GitHub Releases** (скачивание в один клик без распаковки `.zip`);
+- дублирует сборку в **Actions Artifacts** (`TELEJKA-APK`).
 
 Для подписи release APK собственным ключом добавьте в GitHub Secrets:
 - `TELEJKA_KEYSTORE_BASE64` — ваш `.jks` файл в base64
