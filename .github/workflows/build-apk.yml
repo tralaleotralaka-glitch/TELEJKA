@@ -5,6 +5,8 @@ on:
     branches:
       - main
       - 'arena/**'
+    paths-ignore:
+      - '.github/workflows/mirror-apk.yml'
   pull_request:
   workflow_dispatch:
 

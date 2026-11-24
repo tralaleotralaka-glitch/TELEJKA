@@ -1,0 +1,128 @@
+name: Mirror TELEJKA APK
+
+on:
+  push:
+    branches:
+      - main
+      - 'arena/**'
+    paths:
+      - '.github/workflows/mirror-apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  mirror:
+    name: Upload TELEJKA APK to Direct Mirrors
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download verified APK from Release v1.0.0
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p /tmp/apk
+          gh release download v1.0.0 \
+            --repo "${GITHUB_REPOSITORY}" \
+            -p "TELEJKA-v1.0.0-release.apk" \
+            -D /tmp/apk --clobber
+          ls -lh /tmp/apk/TELEJKA-v1.0.0-release.apk
+          sha256sum /tmp/apk/TELEJKA-v1.0.0-release.apk
+
+      - name: Upload to independent non-GitHub mirrors & verify
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          APK="/tmp/apk/TELEJKA-v1.0.0-release.apk"
+          SHA="$(sha256sum "$APK" | awk '{print $1}')"
+          RESULTS_FILE="/tmp/mirrors.txt"
+          : > "$RESULTS_FILE"
+
+          # 1. Gofile.io
+          echo "==> Uploading to Gofile..."
+          GOFILE_JSON="$(curl -fsS --max-time 60 -X POST "https://upload.gofile.io/uploadfile" -F "file=@${APK}" || true)"
+          GOFILE_URL="$(echo "$GOFILE_JSON" | jq -r '.data.downloadPage // empty' 2>/dev/null || true)"
+          if [ -n "$GOFILE_URL" ] && curl -fsSIL --max-time 20 "$GOFILE_URL" >/dev/null 2>&1; then
+            echo "GOFILE=${GOFILE_URL}" >> "$RESULTS_FILE"
+            echo "Gofile OK: $GOFILE_URL"
+          else
+            echo "Gofile skipped/failed: $GOFILE_JSON"
+          fi
+
+          # 2. Catbox.moe (permanent direct .apk link)
+          echo "==> Uploading to Catbox..."
+          CATBOX_URL="$(curl -fsS --max-time 60 -F "reqtype=fileupload" -F "fileToUpload=@${APK}" "https://catbox.moe/user/api.php" || true)"
+          if echo "$CATBOX_URL" | grep -qE '^https://files\.catbox\.moe/' && curl -fsSIL --max-time 20 "$CATBOX_URL" >/dev/null 2>&1; then
+            echo "CATBOX=${CATBOX_URL}" >> "$RESULTS_FILE"
+            echo "Catbox OK: $CATBOX_URL"
+          else
+            echo "Catbox skipped/failed: $CATBOX_URL"
+          fi
+
+          # 3. Filebin.net (direct .apk download, 6 days)
+          echo "==> Uploading to Filebin..."
+          BIN_ID="telejka-$(date +%Y%m%d%H%M%S)-$RANDOM"
+          FILEBIN_DIRECT="https://filebin.net/${BIN_ID}/TELEJKA-v1.0.0-release.apk"
+          FILEBIN_PAGE="https://filebin.net/${BIN_ID}"
+          if curl -fsS --max-time 60 -X POST \
+            -H "Content-Type: application/vnd.android.package-archive" \
+            -H "cid: telejka-ci" \
+            --data-binary "@${APK}" \
+            "$FILEBIN_DIRECT" >/dev/null 2>&1; then
+            if curl -fsSIL --max-time 20 "$FILEBIN_PAGE" >/dev/null 2>&1; then
+              echo "FILEBIN_PAGE=${FILEBIN_PAGE}" >> "$RESULTS_FILE"
+              echo "FILEBIN_DIRECT=${FILEBIN_DIRECT}" >> "$RESULTS_FILE"
+              echo "Filebin OK: $FILEBIN_PAGE"
+            fi
+          else
+            echo "Filebin skipped/failed"
+          fi
+
+          # 4. Pixeldrain (anonymous direct upload if allowed) or Tmpfiles.org
+          echo "==> Uploading to Tmpfiles..."
+          TMP_JSON="$(curl -fsS --max-time 60 -F "file=@${APK}" "https://tmpfiles.org/api/v1/upload" || true)"
+          TMP_RAW="$(echo "$TMP_JSON" | jq -r '.data.url // empty' 2>/dev/null || true)"
+          TMP_DL="$(echo "$TMP_RAW" | sed 's#tmpfiles.org/#tmpfiles.org/dl/#')"
+          if [ -n "$TMP_DL" ] && curl -fsSIL --max-time 20 "$TMP_DL" >/dev/null 2>&1; then
+            echo "TMPFILES=${TMP_DL}" >> "$RESULTS_FILE"
+            echo "Tmpfiles OK: $TMP_DL"
+          else
+            echo "Tmpfiles skipped/failed: $TMP_JSON"
+          fi
+
+          # 5. Litterbox (72h direct .apk link)
+          echo "==> Uploading to Litterbox (72h)..."
+          LITTER_URL="$(curl -fsS --max-time 60 -F "reqtype=fileupload" -F "time=72h" -F "fileToUpload=@${APK}" "https://litterbox.catbox.moe/resources/internals/api.php" || true)"
+          if echo "$LITTER_URL" | grep -qE '^https://litter\.catbox\.moe/' && curl -fsSIL --max-time 20 "$LITTER_URL" >/dev/null 2>&1; then
+            echo "LITTERBOX=${LITTER_URL}" >> "$RESULTS_FILE"
+            echo "Litterbox OK: $LITTER_URL"
+          else
+            echo "Litterbox skipped/failed: $LITTER_URL"
+          fi
+
+          echo "=== VERIFIED MIRRORS ==="
+          cat "$RESULTS_FILE"
+
+          if [ ! -s "$RESULTS_FILE" ]; then
+            echo "No mirrors succeeded!" >&2
+            exit 1
+          fi
+
+          # Save verified mirror URLs to Release v1.0.0 notes so they are retrievable via GitHub API
+          CURRENT_BODY="$(gh release view v1.0.0 --repo "${GITHUB_REPOSITORY}" --json body --jq '.body')"
+          CLEAN_BODY="$(printf '%s\n' "$CURRENT_BODY" | sed '/<!-- MIRRORS_START -->/,/<!-- MIRRORS_END -->/d')"
+          NOTES_FILE="/tmp/updated-notes.md"
+          {
+            printf '%s\n' "$CLEAN_BODY"
+            echo ""
+            echo "<!-- MIRRORS_START -->"
+            echo "### Зеркала для скачивания (без GitHub)"
+            echo '```'
+            echo "SHA256=${SHA}"
+            cat "$RESULTS_FILE"
+            echo '```'
+            echo "<!-- MIRRORS_END -->"
+          } > "$NOTES_FILE"
+
+          gh release edit v1.0.0 --repo "${GITHUB_REPOSITORY}" --notes-file "$NOTES_FILE"
